@@ -1,5 +1,5 @@
 import * as ReactDOM from "react-dom/client"
-import Root from "./app/root"
+import Root from "./root"
 
 function render() {
   const root = ReactDOM.createRoot(document.getElementById("root"))
