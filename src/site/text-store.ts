@@ -18,7 +18,6 @@ export class TextStore {
       if (xpath.startsWith(snippet.xpath)) dedup.push(idx)
     })
 
-    console.log(dedup)
     for (const idx of dedup) {
       this.textSnippets.splice(idx, 1)
     }
