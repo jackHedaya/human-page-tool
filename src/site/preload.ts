@@ -39,14 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
     closestElement.addEventListener("click", () => {
       if (closestElement.hasAttribute("data-selected")) return
 
-      // remove all scripts and meta and style tags
-      closestElement
-        .querySelectorAll("script, meta, style, img, noscript")
-        .forEach((element) => {
-          element.remove()
-        })
-
-      const text = closestElement.textContent.trim()
+      const text = getTextExcept(closestElement, "script,style,noscript,meta")
       const xSelector = xPath(closestElement)
 
       console.log(text, xSelector)
@@ -59,3 +52,20 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   })
 })
+
+function getTextExcept(element: Element, exclude: string) {
+  return worker(element).trim()
+
+  function worker(node: ChildNode, text = "") {
+    if (node.nodeType === Node.TEXT_NODE) {
+      text += node.nodeValue
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      if (!(node as Element).matches(exclude)) {
+        for (const child of node.childNodes) {
+          text = worker(child, text)
+        }
+      }
+    }
+    return text
+  }
+}
