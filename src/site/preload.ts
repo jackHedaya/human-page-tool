@@ -72,31 +72,10 @@ function onClick(e: MouseEvent) {
 
   if (closestElement.hasAttribute("data-selected")) return
 
-  // get all text nodes children or grandchildren
-  const getTextElements = (element: Element) => {
-    const textNodes: Element[] = []
-
-    for (const child of element.childNodes) {
-      if (child.nodeType === Node.TEXT_NODE) {
-        if (child.parentElement.tagName === "SCRIPT") continue
-        if (child.parentElement.tagName === "STYLE") continue
-        if (child.parentElement.tagName === "NOSCRIPT") continue
-        if (child.parentElement.tagName === "META") continue
-        if (child.parentElement.tagName === "A") continue
-
-        textNodes.push(child.parentElement)
-      } else if (child.nodeType === Node.ELEMENT_NODE) {
-        textNodes.push(...getTextElements(child as Element))
-      }
-    }
-
-    return textNodes
-  }
-
   // replace spaces with a single space and multiple newlines with a single newline
   // this is to make the text more readable
   const textElements = getTextElements(closestElement)
-  const text = textElements.map((el) => getTextExcept(el))
+  const text = textElements.map((el) => getText(el))
 
   for (let i = 0; i < text.length; i++) {
     textStore.addSnippet({
@@ -124,7 +103,27 @@ function onClick(e: MouseEvent) {
   setBackground(closestElement, "green")
 }
 
-function getTextExcept(element: Element, exclude?: string) {
+function getTextElements(element: Element) {
+  const textNodes: Element[] = []
+
+  for (const child of element.childNodes) {
+    if (child.nodeType === Node.TEXT_NODE) {
+      if (child.parentElement.tagName === "SCRIPT") continue
+      if (child.parentElement.tagName === "STYLE") continue
+      if (child.parentElement.tagName === "NOSCRIPT") continue
+      if (child.parentElement.tagName === "META") continue
+      if (child.parentElement.tagName === "A") continue
+
+      textNodes.push(child.parentElement)
+    } else if (child.nodeType === Node.ELEMENT_NODE) {
+      textNodes.push(...getTextElements(child as Element))
+    }
+  }
+
+  return textNodes
+}
+
+function getText(element: Element, exclude?: string) {
   return worker(element).trim()
 
   function worker(node: ChildNode, text = "") {
