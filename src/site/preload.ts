@@ -113,6 +113,7 @@ function getTextElements(element: Element) {
       if (child.parentElement.tagName === "NOSCRIPT") continue
       if (child.parentElement.tagName === "META") continue
       if (child.parentElement.tagName === "A") continue
+      if (child.parentElement.hasAttribute("data-selected")) continue
 
       textNodes.push(child.parentElement)
     } else if (child.nodeType === Node.ELEMENT_NODE) {
