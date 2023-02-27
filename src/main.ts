@@ -1,17 +1,16 @@
 import { BrowserView, ipcMain } from "electron"
 
-ipcMain.on("preload:page-text", (event, { text, xpath }) => {
-  console.log(text, xpath)
-})
-
 type IpcArgs = {
   textView: BrowserView
   siteView: BrowserView
 }
 
+let textSnippets: { text: string; xpath: string }[] = []
+
 export const ipc: (a: IpcArgs) => void = ({ textView, siteView }) => {
-  ipcMain.on("preload:page-text", (event, { text, xpath }) => {
-    console.log(text, xpath)
-    textView.webContents.send("preload:page-text", { text, xpath })
+  ipcMain.on("site:update", (event, { snippets }) => {
+    textSnippets = snippets
+    console.log(textSnippets)
+    textView.webContents.send("update-snippets", textSnippets)
   })
 }

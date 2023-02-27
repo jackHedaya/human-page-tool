@@ -1,10 +1,13 @@
 import { ipcRenderer } from "electron"
 import { removeBackground, setBackground } from "./background"
+import { TextStore } from "./text-store"
 import { xPath } from "./xpath"
 
 console.log(
   '👋 This message is being logged by "preload.ts", included via webpack'
 )
+
+const textStore = new TextStore()
 
 document.addEventListener("DOMContentLoaded", () => {
   // remove all links
@@ -15,9 +18,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.addEventListener("mouseover", (e) => {
     // get the closest element to the target text
-    const textNode = getTextNode(e.x, e.y)
+    let textNode: Node = getTextNode(e.pageX, e.pageY)
 
-    onMouseMove(textNode as Element)
+    if (!textNode) textNode = e.target as Node
+
+    if (textNode.nodeType === Node.TEXT_NODE)
+      onMouseMove(textNode.parentElement)
+    else onMouseMove(textNode as Element)
   })
 })
 
@@ -36,8 +43,7 @@ function onMouseMove(closestElement: Element) {
 
 function onMouseOut(e: MouseEvent) {
   const closestElement = e.target as Element
-  console.log(closestElement)
-  console.log(closestElement.hasAttribute("data-selected"))
+
   if (closestElement.hasAttribute("data-selected")) return
 
   function recRemoveBackground(element: Element) {
@@ -50,7 +56,7 @@ function onMouseOut(e: MouseEvent) {
         // make sure the child element is not selected or is under the mouse
         if (
           !(child as Element).hasAttribute("data-selected") &&
-          !child.contains(document.elementFromPoint(e.x, e.y))
+          !child.contains(document.elementFromPoint(e.pageX, e.pageY))
         ) {
           recRemoveBackground(child as Element)
         }
@@ -61,24 +67,48 @@ function onMouseOut(e: MouseEvent) {
   recRemoveBackground(closestElement)
 }
 
-function onClick(e: Event) {
+function onClick(e: MouseEvent) {
   const closestElement = e.target as Element
 
   if (closestElement.hasAttribute("data-selected")) return
 
-  const text = getTextExcept(
-    closestElement,
-    "script,style,noscript,meta"
-  ).replace(/\n\s*\n/g, "\n")
+  // get all text nodes children or grandchildren
+  const getTextElements = (element: Element) => {
+    const textNodes: Element[] = []
+
+    for (const child of element.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        if (child.parentElement.tagName === "SCRIPT") continue
+        if (child.parentElement.tagName === "STYLE") continue
+        if (child.parentElement.tagName === "NOSCRIPT") continue
+        if (child.parentElement.tagName === "META") continue
+        if (child.parentElement.tagName === "A") continue
+
+        textNodes.push(child.parentElement)
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        textNodes.push(...getTextElements(child as Element))
+      }
+    }
+
+    return textNodes
+  }
 
   // replace spaces with a single space and multiple newlines with a single newline
   // this is to make the text more readable
+  const textElements = getTextElements(closestElement)
+  const text = textElements.map((el) => getTextExcept(el))
 
-  const xpath = xPath(closestElement)
+  for (let i = 0; i < text.length; i++) {
+    textStore.addSnippet({
+      xpath: xPath(textElements[i]),
+      text: text[i],
+      element: textElements[i],
+    })
+  }
 
-  console.log(text, xpath)
+  const snippets = textStore.getSnippets()
 
-  ipcRenderer.send("preload:page-text", { text, xpath })
+  ipcRenderer.send("site:update", { snippets })
 
   const setSelectedRec = (element: Element) => {
     element.setAttribute("data-selected", "true")
@@ -94,25 +124,29 @@ function onClick(e: Event) {
   setBackground(closestElement, "green")
 }
 
-function getTextExcept(element: Element, exclude: string) {
+function getTextExcept(element: Element, exclude?: string) {
   return worker(element).trim()
 
   function worker(node: ChildNode, text = "") {
     if (node.nodeType === Node.TEXT_NODE) {
       text += node.nodeValue
     } else if (node.nodeType === Node.ELEMENT_NODE) {
-      if (!(node as Element).matches(exclude)) {
+      if (!exclude || !(node as Element).matches(exclude)) {
         for (const child of node.childNodes) {
           text = worker(child, text)
         }
       }
     }
-    return text
+    return text.replace(/\n\s*\n/g, "\n")
   }
 }
 
 function getTextNode(x: number, y: number) {
   const el = document.elementFromPoint(x, y)
+
+  if (!el) return
+  if (!el.childNodes) return el
+
   const nodes = el.childNodes
   for (let i = 0, n; (n = nodes[i++]); ) {
     if (n.nodeType === 3) {
