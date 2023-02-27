@@ -10,12 +10,18 @@ export class TextStore {
 
   public addSnippet({ text, xpath, element }: AddArgs) {
     // check if the snippet already exists
-    if (
-      this.textSnippets.some(
-        (snippet) => snippet.xpath.startsWith(xpath) && snippet.text === text
-      )
-    )
-      return
+    const dedup: number[] = []
+
+    this.textSnippets.forEach((snippet, idx) => {
+      if (snippet.xpath.startsWith(xpath)) dedup.push(idx)
+
+      if (xpath.startsWith(snippet.xpath)) dedup.push(idx)
+    })
+
+    console.log(dedup)
+    for (const idx of dedup) {
+      this.textSnippets.splice(idx, 1)
+    }
 
     this.textSnippets.push({
       text,
