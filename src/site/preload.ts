@@ -39,6 +39,13 @@ document.addEventListener("DOMContentLoaded", () => {
     closestElement.addEventListener("click", () => {
       if (closestElement.hasAttribute("data-selected")) return
 
+      // remove all scripts and meta and style tags
+      closestElement
+        .querySelectorAll("script, meta, style, img, noscript")
+        .forEach((element) => {
+          element.remove()
+        })
+
       const text = closestElement.textContent.trim()
       const xSelector = xPath(closestElement)
 
