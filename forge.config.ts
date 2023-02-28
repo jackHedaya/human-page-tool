@@ -33,7 +33,7 @@ const config: ForgeConfig = {
           },
           {
             html: "./src/text/index.html",
-            js: "./src/text/renderer.ts",
+            js: "./src/text/renderer.tsx",
             name: "text_view",
             preload: {
               js: "./src/text/preload.ts",

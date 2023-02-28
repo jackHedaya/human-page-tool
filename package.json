@@ -24,6 +24,7 @@
     "@electron-forge/maker-squirrel": "^6.0.5",
     "@electron-forge/maker-zip": "^6.0.5",
     "@electron-forge/plugin-webpack": "^6.0.5",
+    "@types/marked": "^4.0.8",
     "@types/node": "^18.14.1",
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
@@ -43,7 +44,11 @@
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.0",
+    "marked": "^4.2.12",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-markdown": "^8.0.5",
+    "state-pool": "^0.9.0",
+    "tmp-promise": "^3.0.3"
   }
 }

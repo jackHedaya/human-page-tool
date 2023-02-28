@@ -1,5 +1,7 @@
 import { ipcRenderer } from "electron"
+import { Snippet } from "../types/snippet"
 import { removeBackground, setBackground } from "./background"
+import { sortSnippetsOrder } from "./sortSnippets"
 import { TextStore } from "./text-store"
 import { xPath } from "./xpath"
 
@@ -7,7 +9,18 @@ console.log(
   '👋 This message is being logged by "preload.ts", included via webpack'
 )
 
-const textStore = new TextStore()
+async function sendSnippet(text: string, xpath: string) {
+  const snippets: Snippet[] = await ipcRenderer.invoke("site:add-snippet", {
+    text,
+    xpath,
+  })
+
+  const sortOrder = sortSnippetsOrder(snippets)
+
+  return ipcRenderer.invoke("site:sort-snippets", {
+    order: sortOrder,
+  }) as Promise<Snippet[]>
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   // remove all links

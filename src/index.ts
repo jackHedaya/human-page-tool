@@ -49,11 +49,6 @@ const createWindow = () => {
     height: WINDOW_HEIGHT,
   })
 
-  startView.webContents.openDevTools({
-    mode: "detach",
-  })
-
-  // make sure startView scales with window
   mainWindow.on("resize", () => {
     startView.setBounds({
       x: 0,
@@ -78,10 +73,6 @@ const createWindow = () => {
   })
 
   textView.webContents.loadURL(TEXT_VIEW_WEBPACK_ENTRY)
-
-  // siteView.webContents.openDevTools({
-  //   mode: "detach",
-  // })
 
   ipc({ siteView, textView, mainWindow })
 }

@@ -1,5 +1,7 @@
 import { dialog, BrowserView, ipcMain, BrowserWindow } from "electron"
-import { PageStore } from "./PageStore"
+import { file } from "tmp-promise"
+import { writeFile } from "fs/promises"
+import { PageStore } from "./state/PageStore"
 
 type IpcArgs = {
   textView: BrowserView
@@ -7,55 +9,50 @@ type IpcArgs = {
   mainWindow: BrowserWindow
 }
 
-let textSnippets: { text: string; xpath: string; tag: string }[] = []
+const store: PageStore = new PageStore()
 
-let store: PageStore
-const pageIdx = 0
+let pageIdx = 0
 
 export const ipc: (a: IpcArgs) => void = ({
   textView,
   siteView,
   mainWindow,
 }) => {
-  ipcMain.on("site:update", (event, { snippets }) => {
-    textSnippets = snippets
-    console.log(textSnippets)
-    textView.webContents.send("update:data", textSnippets)
+  ipcMain.handle("site:add-snippet", (event, { snippet }) => {
+    return store.addSnippet(pageIdx, snippet)
   })
 
-  ipcMain.on("control:done", (event, { snippets }) => {})
+  ipcMain.handle("site:sort-snippets", (event, { order }) => {
+    return store.sortSnippets(pageIdx, order)
+  })
 
-  ipcMain.on("start:open-dialog", async (event) => {
-    const result = await dialog.showOpenDialog({
-      properties: ["openDirectory"],
-    })
+  ipcMain.on("control:next", async (event) => {
+    await store.syncSnippets(pageIdx)
 
-    if (result.canceled) {
-      return
-    }
+    pageIdx++
 
-    const [path] = result.filePaths
+    ipcMain.emit("main:load-site", { idx: pageIdx })
+  })
 
-    const outPath = path.split("/").slice(0, -1).concat(["extracted"]).join("/")
-
-    store = new PageStore(path, outPath)
-
-    await store.loadDirectory()
-
+  ipcMain.on("main:load-site", async (event, { idx }) => {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     mainWindow.removeBrowserView(mainWindow.getBrowserView()!)
 
-    const page = await store.getPage(pageIdx)
+    const page = await store.getPage(idx)
 
-    const htmlToDataUrl = (html: string) => {
-      const dataUrl = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`
-      return dataUrl
-    }
+    const { path: sitePath, cleanup } = await loadHtml(page.page.data)
 
-    siteView.webContents.loadURL(htmlToDataUrl(page.page))
+    siteView.webContents.loadURL(sitePath)
+
+    siteView.webContents.on("destroyed", () => {
+      cleanup()
+    })
 
     mainWindow.addBrowserView(siteView)
     mainWindow.addBrowserView(textView)
+
+    siteView.webContents.openDevTools({ mode: "detach" })
+    textView.webContents.openDevTools({ mode: "detach" })
 
     textView.setBounds({
       x: mainWindow.getBounds().width / 2,
@@ -71,4 +68,33 @@ export const ipc: (a: IpcArgs) => void = ({
       height: mainWindow.getBounds().height,
     })
   })
+
+  ipcMain.on("start:open-dialog", async (event) => {
+    const result = await dialog.showOpenDialog({
+      properties: ["openDirectory"],
+    })
+
+    if (result.canceled) {
+      return
+    }
+
+    const [path] = result.filePaths
+
+    const outPath = path.split("/").slice(0, -1).concat(["extracted"]).join("/")
+
+    store.setPath(path)
+    store.setOutPath(outPath)
+
+    await store.loadDirectory()
+
+    ipcMain.emit("main:load-site", { idx: pageIdx })
+  })
+}
+
+const loadHtml = async (page: string) => {
+  const { path, cleanup } = await file({ postfix: ".mhtml" })
+
+  await writeFile(path, page)
+
+  return { path: `file://${path}`, cleanup }
 }
