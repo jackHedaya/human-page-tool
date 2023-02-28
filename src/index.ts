@@ -9,16 +9,13 @@ declare const START_VIEW_PRELOAD_WEBPACK_ENTRY: string
 
 declare const SITE_VIEW_PRELOAD_WEBPACK_ENTRY: string
 
-declare const TEXT_VIEW_WEBPACK_ENTRY: string
-declare const TEXT_VIEW_PRELOAD_WEBPACK_ENTRY: string
+declare const CONTROL_VIEW_WEBPACK_ENTRY: string
+declare const CONTROL_VIEW_PRELOAD_WEBPACK_ENTRY: string
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require("electron-squirrel-startup")) {
   app.quit()
 }
-
-// nyu study abroad
-const siteViewUrl = "https://www.nyu.edu/academics/studying-abroad.html"
 
 const WINDOW_WIDTH = 800
 const WINDOW_HEIGHT = 600
@@ -63,16 +60,17 @@ const createWindow = () => {
   const siteView = new BrowserView({
     webPreferences: {
       preload: SITE_VIEW_PRELOAD_WEBPACK_ENTRY,
+      nodeIntegration: true,
     },
   })
 
   const textView = new BrowserView({
     webPreferences: {
-      preload: TEXT_VIEW_PRELOAD_WEBPACK_ENTRY,
+      preload: CONTROL_VIEW_PRELOAD_WEBPACK_ENTRY,
     },
   })
 
-  textView.webContents.loadURL(TEXT_VIEW_WEBPACK_ENTRY)
+  textView.webContents.loadURL(CONTROL_VIEW_WEBPACK_ENTRY)
 
   ipc({ siteView, textView, mainWindow })
 }

@@ -1,25 +1,46 @@
 import { ipcRenderer } from "electron"
 import { Snippet } from "../types/snippet"
 import { removeBackground, setBackground } from "./background"
+import { markdownFromElement } from "./markdown"
 import { sortSnippetsOrder } from "./sortSnippets"
-import { TextStore } from "./text-store"
 import { xPath } from "./xpath"
 
 console.log(
   '👋 This message is being logged by "preload.ts", included via webpack'
 )
 
-async function sendSnippet(text: string, xpath: string) {
+document.querySelectorAll("a").forEach((link) => {
+  link.setAttribute("href", "")
+})
+
+// remove all hover effects
+document.querySelectorAll("*").forEach((element) => {
+  element.setAttribute("style", "transition: none !important")
+})
+
+async function sendSnippet({
+  markdown,
+  xpath,
+}: {
+  markdown: string
+  xpath: string
+}): Promise<Snippet[]> {
   const snippets: Snippet[] = await ipcRenderer.invoke("site:add-snippet", {
-    text,
-    xpath,
+    snippet: {
+      markdown,
+      xpath,
+    },
   })
 
   const sortOrder = sortSnippetsOrder(snippets)
 
-  return ipcRenderer.invoke("site:sort-snippets", {
+  const sorted = ipcRenderer.invoke("site:sort-snippets", {
     order: sortOrder,
-  }) as Promise<Snippet[]>
+  })
+
+  await ipcRenderer.invoke("site:rerender-control")
+
+  return sorted
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -30,152 +51,107 @@ document.addEventListener("DOMContentLoaded", () => {
   })
 
   document.addEventListener("mouseover", (e) => {
+    e.stopPropagation()
+    e.preventDefault()
+
     // get the closest element to the target text
-    let textNode: Node = getTextNode(e.pageX, e.pageY)
+    const element = document.elementFromPoint(e.pageX, e.pageY)
 
-    if (!textNode) textNode = e.target as Node
+    if (!element) return
 
-    if (textNode.nodeType === Node.TEXT_NODE)
-      onMouseMove(textNode.parentElement)
-    else onMouseMove(textNode as Element)
+    if (isUsed(element)) return
+
+    setBackground(element, "red")
+
+    if (isHandlersAdded(element)) return
+
+    addClickHandler(element)
+    addMouseOutHandler(element)
+
+    setHandlersAdded(element)
   })
 })
 
-function onMouseMove(closestElement: Element) {
-  // make background red
-  if (!closestElement.hasAttribute("data-selected")) {
-    setBackground(closestElement, "red")
-  }
+function addClickHandler(element: Element) {
+  element.addEventListener("click", async (e) => {
+    e.stopPropagation()
+    console.log("clicked", xPath(element))
+    if (isUsed(element)) return
 
-  // on mouse out, remove the background color
-  closestElement.addEventListener("mouseout", onMouseOut)
+    const xpath = xPath(element)
 
-  // on click, send the text and XSelector to the main process
-  closestElement.addEventListener("click", onClick)
+    const markdown = markdownFromElement(element)
+
+    if (!markdown) return
+
+    const snippets = await sendSnippet({ markdown, xpath })
+
+    rerender(snippets)
+  })
 }
 
-function onMouseOut(e: MouseEvent) {
-  const closestElement = e.target as Element
-
-  if (closestElement.hasAttribute("data-selected")) return
-
-  function recRemoveBackground(element: Element) {
-    if (element.hasAttribute("data-selected")) return
+function addMouseOutHandler(element: Element) {
+  element.addEventListener("mouseout", (e) => {
+    if (isUsed(element)) return
 
     removeBackground(element)
+  })
+}
 
-    element.childNodes.forEach((child) => {
-      if (child.nodeType === Node.ELEMENT_NODE) {
-        // make sure the child element is not selected or is under the mouse
-        if (
-          !(child as Element).hasAttribute("data-selected") &&
-          !child.contains(document.elementFromPoint(e.pageX, e.pageY))
-        ) {
-          recRemoveBackground(child as Element)
-        }
-      }
+function findSelectedElements(snippets: Snippet[]) {
+  // find all elements that have a snippet and set them and their children to used
+
+  snippets.forEach((snippet) => {
+    const element = document.evaluate(
+      snippet.xpath,
+      document,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null
+    ).singleNodeValue as Element
+
+    if (!element) return
+
+    setUsed(element)
+
+    const children = element.querySelectorAll("*")
+
+    children.forEach((child) => {
+      setUsed(child)
     })
-  }
-
-  recRemoveBackground(closestElement)
+  })
 }
 
-function onClick(e: MouseEvent) {
-  const closestElement = e.target as Element
+function rerender(snippets: Snippet[] = []) {
+  // find all elements that have not been used and remove their background
+  const elements = document.querySelectorAll("*")
+  elements.forEach((element) => {
+    if (isUsed(element)) return
 
-  if (closestElement.hasAttribute("data-selected")) return
+    removeBackground(element)
+  })
 
-  // replace spaces with a single space and multiple newlines with a single newline
-  // this is to make the text more readable
-  const textElements = getTextElements(closestElement)
-  const text = textElements.map((el) => getText(el))
+  findSelectedElements(snippets)
 
-  for (let i = 0; i < text.length; i++) {
-    textStore.addSnippet({
-      xpath: xPath(textElements[i]),
-      text: text[i],
-      element: textElements[i],
-    })
-  }
-
-  const snippets = textStore.getSnippets()
-
-  ipcRenderer.send("site:update", { snippets })
-
-  const setSelectedRec = (element: Element) => {
-    element.setAttribute("data-selected", "true")
-    element.childNodes.forEach((child) => {
-      if (child.nodeType === Node.ELEMENT_NODE) {
-        setSelectedRec(child as Element)
-      }
-    })
-  }
-
-  setSelectedRec(closestElement)
-
-  setBackground(closestElement, "green")
+  // add background to all elements that have been used
+  const usedElements = document.querySelectorAll("*[data-used=true]")
+  usedElements.forEach((element) => {
+    setBackground(element, "green")
+  })
 }
 
-function getTextElements(element: Element) {
-  const textNodes: Element[] = []
-
-  for (const child of element.childNodes) {
-    if (child.nodeType === Node.TEXT_NODE) {
-      if (child.parentElement.tagName === "SCRIPT") continue
-      if (child.parentElement.tagName === "STYLE") continue
-      if (child.parentElement.tagName === "NOSCRIPT") continue
-      if (child.parentElement.tagName === "META") continue
-      if (child.parentElement.hasAttribute("data-selected")) continue
-
-      textNodes.push(child.parentElement)
-    } else if (child.nodeType === Node.ELEMENT_NODE) {
-      textNodes.push(...getTextElements(child as Element))
-    }
-  }
-
-  return textNodes
+function isUsed(element: Element) {
+  return element.hasAttribute("data-used")
 }
 
-function getText(element: Element, exclude?: string) {
-  return worker(element).trim()
-
-  function worker(node: ChildNode, text = "") {
-    if (node.nodeType === Node.TEXT_NODE) {
-      text += node.nodeValue
-    } else if (node.nodeType === Node.ELEMENT_NODE) {
-      if (!exclude || !(node as Element).matches(exclude)) {
-        for (const child of node.childNodes) {
-          text = worker(child, text)
-        }
-      }
-    }
-    return text.replace(/\n\s*\n/g, "\n")
-  }
+function setUsed(element: Element) {
+  element.setAttribute("data-used", "true")
 }
 
-function getTextNode(x: number, y: number) {
-  const el = document.elementFromPoint(x, y)
+function isHandlersAdded(element: Element) {
+  return element.hasAttribute("data-handlers-added")
+}
 
-  if (!el) return
-  if (!el.childNodes) return el
-
-  const nodes = el.childNodes
-  for (let i = 0, n; (n = nodes[i++]); ) {
-    if (n.nodeType === 3) {
-      const r = document.createRange()
-      r.selectNode(n)
-      const rects = r.getClientRects()
-      for (let j = 0, rect; (rect = rects[j++]); ) {
-        if (
-          x > rect.left &&
-          x < rect.right &&
-          y > rect.top &&
-          y < rect.bottom
-        ) {
-          return n
-        }
-      }
-    }
-  }
-  return el
+function setHandlersAdded(element: Element) {
+  element.setAttribute("data-handlers-added", "true")
 }

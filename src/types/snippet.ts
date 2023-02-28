@@ -1,5 +1,4 @@
 export type Snippet = {
-  text: string
+  markdown: string
   xpath: string
-  tag: string
 }

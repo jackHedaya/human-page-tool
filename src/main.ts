@@ -26,6 +26,10 @@ export const ipc: (a: IpcArgs) => void = ({
     return store.sortSnippets(pageIdx, order)
   })
 
+  ipcMain.handle("site:rerender-control", async () => {
+    textView.webContents.send("main:rerender", await store.getSnippets(pageIdx))
+  })
+
   ipcMain.on("control:next", async (event) => {
     await store.syncSnippets(pageIdx)
 
@@ -87,7 +91,7 @@ export const ipc: (a: IpcArgs) => void = ({
 
     await store.loadDirectory()
 
-    ipcMain.emit("main:load-site", { idx: pageIdx })
+    ipcMain.emit("main:load-site", null, { idx: pageIdx })
   })
 }
 

@@ -32,11 +32,11 @@ const config: ForgeConfig = {
             },
           },
           {
-            html: "./src/text/index.html",
-            js: "./src/text/renderer.tsx",
-            name: "text_view",
+            html: "./src/control/index.html",
+            js: "./src/control/renderer.tsx",
+            name: "control_view",
             preload: {
-              js: "./src/text/preload.ts",
+              js: "./src/control/preload.ts",
             },
           },
           {

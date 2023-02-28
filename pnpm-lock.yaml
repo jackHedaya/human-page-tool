@@ -11,6 +11,7 @@ specifiers:
   '@types/node': ^18.14.1
   '@types/react': ^18.0.28
   '@types/react-dom': ^18.0.11
+  '@types/turndown': ^5.0.1
   '@typescript-eslint/eslint-plugin': ^5.0.0
   '@typescript-eslint/parser': ^5.0.0
   '@vercel/webpack-asset-relocator-loader': 1.7.3
@@ -30,6 +31,7 @@ specifiers:
   tmp-promise: ^3.0.3
   ts-loader: ^9.2.2
   ts-node: ^10.0.0
+  turndown: ^7.1.1
   typescript: ~4.5.4
 
 dependencies:
@@ -40,6 +42,7 @@ dependencies:
   react-markdown: 8.0.5_pmekkgnqduwlme35zpnqhenc34
   state-pool: 0.9.0_react@18.2.0
   tmp-promise: 3.0.3
+  turndown: 7.1.1
 
 devDependencies:
   '@electron-forge/cli': 6.0.5
@@ -52,6 +55,7 @@ devDependencies:
   '@types/node': 18.14.2
   '@types/react': 18.0.28
   '@types/react-dom': 18.0.11
+  '@types/turndown': 5.0.1
   '@typescript-eslint/eslint-plugin': 5.54.0_sznkyf4fdf3dbpu2eh4ra6acrq
   '@typescript-eslint/parser': 5.54.0_it4l3c6aww5u6dij6yjm4qxmta
   '@vercel/webpack-asset-relocator-loader': 1.7.3
@@ -861,6 +865,10 @@ packages:
     resolution: {integrity: sha512-f0KEEe05NvUnat+boPTZ0dgaLZ4SfSouXUgv5noUiefG2ajgKjmETo9ZJyuqsl7dfl2aHlLJUiki6B4ZYldiiw==}
     dependencies:
       '@types/node': 18.14.2
+    dev: true
+
+  /@types/turndown/5.0.1:
+    resolution: {integrity: sha512-N8Ad4e3oJxh9n9BiZx9cbe/0M3kqDpOTm2wzj13wdDUxDPjfjloWIJaquZzWE1cYTAHpjOH3rcTnXQdpEfS/SQ==}
     dev: true
 
   /@types/unist/2.0.6:
@@ -2120,6 +2128,10 @@ packages:
     dependencies:
       domelementtype: 2.3.0
     dev: true
+
+  /domino/2.1.6:
+    resolution: {integrity: sha512-3VdM/SXBZX2omc9JF9nOPCtDaYQ67BGp5CoLpIQlO2KCAPETs8TcDHacF26jXadGbvUteZzRTeos2fhID5+ucQ==}
+    dev: false
 
   /domutils/2.8.0:
     resolution: {integrity: sha512-w96Cjofp72M5IIhpjgobBimYEfoPjx1Vx0BSX9P30WBdZW2WIKU0T1Bd0kz2eNZ9ikjKgHbEyKx8BB6H1L3h3A==}
@@ -6111,6 +6123,12 @@ packages:
       tslib: 1.14.1
       typescript: 4.5.5
     dev: true
+
+  /turndown/7.1.1:
+    resolution: {integrity: sha512-BEkXaWH7Wh7e9bd2QumhfAXk5g34+6QUmmWx+0q6ThaVOLuLUqsnkq35HQ5SBHSaxjSfSM7US5o4lhJNH7B9MA==}
+    dependencies:
+      domino: 2.1.6
+    dev: false
 
   /type-check/0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
