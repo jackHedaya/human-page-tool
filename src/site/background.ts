@@ -5,7 +5,7 @@ const prevBackground = new Map<string, string>()
 export function setBackground(element: Element, color: string) {
   if (!getPrevBackground(element)) setPrevBackground(element)
 
-  element.setAttribute("style", `background-color: ${color}`)
+  element.setAttribute("style", `background-color: ${color} !important;`)
 }
 
 export function removeBackground(element: Element) {

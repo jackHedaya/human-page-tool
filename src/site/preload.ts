@@ -1,5 +1,6 @@
 import { ipcRenderer } from "electron"
 import { Snippet } from "../types/snippet"
+import { arrestDocument } from "./arrestDocument"
 import { removeBackground, setBackground } from "./background"
 import { markdownFromElement } from "./markdown"
 import { sortSnippetsOrder } from "./sortSnippets"
@@ -8,15 +9,6 @@ import { xPath } from "./xpath"
 console.log(
   '👋 This message is being logged by "preload.ts", included via webpack'
 )
-
-document.querySelectorAll("a").forEach((link) => {
-  link.setAttribute("href", "")
-})
-
-// remove all hover effects
-document.querySelectorAll("*").forEach((element) => {
-  element.setAttribute("style", "transition: none !important")
-})
 
 async function sendSnippet({
   markdown,
@@ -44,18 +36,11 @@ async function sendSnippet({
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // remove all links
-  document.querySelectorAll("a").forEach((link) => {
-    // make the link not clickable
-    link.setAttribute("href", "javascript:void(0)")
-  })
+  arrestDocument(document)
 
   document.addEventListener("mouseover", (e) => {
-    e.stopPropagation()
-    e.preventDefault()
-
     // get the closest element to the target text
-    const element = document.elementFromPoint(e.pageX, e.pageY)
+    const element = document.elementFromPoint(e.x, e.y)
 
     if (!element) return
 
@@ -65,17 +50,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (isHandlersAdded(element)) return
 
-    addClickHandler(element)
     addMouseOutHandler(element)
 
     setHandlersAdded(element)
   })
-})
 
-function addClickHandler(element: Element) {
-  element.addEventListener("click", async (e) => {
-    e.stopPropagation()
-    console.log("clicked", xPath(element))
+  document.addEventListener("click", async (e) => {
+    // get the closest element to the target text
+    const element = document.elementFromPoint(e.x, e.y)
+
+    if (!element) return
+
     if (isUsed(element)) return
 
     const xpath = xPath(element)
@@ -88,10 +73,10 @@ function addClickHandler(element: Element) {
 
     rerender(snippets)
   })
-}
+})
 
 function addMouseOutHandler(element: Element) {
-  element.addEventListener("mouseout", (e) => {
+  element.addEventListener("mouseout", () => {
     if (isUsed(element)) return
 
     removeBackground(element)
