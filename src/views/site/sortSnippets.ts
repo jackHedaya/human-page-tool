@@ -1,4 +1,4 @@
-import type { Snippet } from "../types/snippet"
+import type { Snippet } from "@/types/snippet"
 
 export function sortSnippetsOrder(snippets: Snippet[]): number[] {
   const sorted = snippets.slice().sort((a, b) => {

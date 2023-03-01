@@ -1,5 +1,5 @@
 import { ipcRenderer } from "electron"
-import { Snippet } from "../types/snippet"
+import type { Snippet } from "@/types/snippet"
 import { arrestDocument } from "./arrestDocument"
 import { removeBackground, setBackground } from "./background"
 import { markdownFromElement } from "./markdown"
