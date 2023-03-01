@@ -10,9 +10,17 @@ The extraction is focused on finding "snippets" of text that are likely to be us
 
 ## Usage
 
+### Development
+
 ```
-yarn
-yarn start
+$ yarn
+$ yarn start
+```
+
+### Build
+
+```
+$ yarn make
 ```
 
 ### Schemas
