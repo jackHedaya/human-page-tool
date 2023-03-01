@@ -7,6 +7,13 @@ import { WebpackPlugin } from "@electron-forge/plugin-webpack"
 
 import { mainConfig } from "./webpack.main.config"
 import { rendererConfig } from "./webpack.renderer.config"
+import path from "path"
+
+const BASE_PATH = "./src/views"
+
+const getPath = (name: string, file: string) => {
+  return './' + path.join(BASE_PATH, name, file)
+}
 
 const config: ForgeConfig = {
   packagerConfig: {},
@@ -24,25 +31,33 @@ const config: ForgeConfig = {
         config: rendererConfig,
         entryPoints: [
           {
-            html: "./src/start/index.html",
-            js: "./src/start/renderer.ts",
+            html: getPath("start", "index.html"),
+            js: getPath("start", "renderer.ts"),
             name: "start_view",
             preload: {
-              js: "./src/start/preload.ts",
+              js: getPath("start", "preload.ts"),
             },
           },
           {
-            html: "./src/control/index.html",
-            js: "./src/control/renderer.tsx",
+            html: getPath("finish", "index.html"),
+            js: getPath("finish", "renderer.ts"),
+            name: "finish_view",
+            preload: {
+              js: getPath("finish", "preload.ts"),
+            },
+          },
+          {
+            html: getPath("control", "index.html"),
+            js: getPath("control", "renderer.ts"),
             name: "control_view",
             preload: {
-              js: "./src/control/preload.ts",
+              js: getPath("control", "preload.ts"),
             },
           },
           {
             name: "site_view",
             preload: {
-              js: "./src/site/preload.ts",
+              js: getPath("site", "preload.ts"),
             },
           },
         ],

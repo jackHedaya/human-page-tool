@@ -4,6 +4,6 @@ import { contextBridge, ipcRenderer } from "electron"
 
 contextBridge.exposeInMainWorld("api", {
   selectDirectory: () => {
-    ipcRenderer.send("start:open-dialog")
+    ipcRenderer.send("start:start")
   },
 })

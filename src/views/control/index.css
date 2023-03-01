@@ -1,0 +1,43 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  margin: auto;
+  width: 100vw;
+  height: 100vh;
+}
+
+#markup {
+  white-space: pre-wrap;
+  flex: 1;
+  padding: 1rem;
+}
+
+#markup div p {
+  margin: 0;
+}
+
+button {
+  margin-right: 1rem;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+button:last-of-type {
+  margin-right: 0;
+}
+
+#controls {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}

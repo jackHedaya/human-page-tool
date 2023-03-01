@@ -2,23 +2,32 @@ import { dialog, BrowserView, ipcMain, BrowserWindow } from "electron"
 import { file } from "tmp-promise"
 import { writeFile } from "fs/promises"
 import { PageStore } from "./state/PageStore"
+import { ActionStack, AddSnippetAction } from "./state/ActionStack"
+import { readFileSync } from "fs"
 
 type IpcArgs = {
   textView: BrowserView
   siteView: BrowserView
+  finishView: BrowserView
   mainWindow: BrowserWindow
 }
 
 const store: PageStore = new PageStore()
 
-let pageIdx = 0
+const actionStack = new ActionStack()
+
+let configPath: string,
+  pageIdx = 0
 
 export const ipc: (a: IpcArgs) => void = ({
   textView,
   siteView,
   mainWindow,
+  finishView,
 }) => {
   ipcMain.handle("site:add-snippet", (event, { snippet }) => {
+    actionStack.push(new AddSnippetAction(store, pageIdx, snippet))
+
     return store.addSnippet(pageIdx, snippet)
   })
 
@@ -27,36 +36,97 @@ export const ipc: (a: IpcArgs) => void = ({
   })
 
   ipcMain.handle("site:rerender-control", async () => {
-    textView.webContents.send("main:rerender", await store.getSnippets(pageIdx))
+    textView.webContents.send("main:rerender", store.getSnippets(pageIdx))
+  })
+
+  ipcMain.on("control:undo", () => {
+    actionStack.undo()
+    textView.webContents.send("main:rerender", store.getSnippets(pageIdx))
+  })
+
+  ipcMain.on("control:redo", () => {
+    actionStack.redo()
+    textView.webContents.send("main:rerender", store.getSnippets(pageIdx))
   })
 
   ipcMain.on("control:next", async (event) => {
-    await store.syncSnippets(pageIdx)
+    await store.flushSnippets(pageIdx)
 
     pageIdx++
 
-    ipcMain.emit("main:load-site", { idx: pageIdx })
+    await writeFile(configPath, pageIdx.toString())
+
+    if (pageIdx >= store.size()) {
+      ipcMain.emit("main:finish", null)
+      return
+    }
+
+    ipcMain.emit("main:load-site", null, { idx: pageIdx })
+
+    actionStack.clear()
   })
 
   ipcMain.on("main:load-site", async (event, { idx }) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    mainWindow.removeBrowserView(mainWindow.getBrowserView()!)
-
     const page = await store.getPage(idx)
 
     const { path: sitePath, cleanup } = await loadHtml(page.page.data)
 
     siteView.webContents.loadURL(sitePath)
+    textView.webContents.send("main:rerender", store.getSnippets(pageIdx))
 
     siteView.webContents.on("destroyed", () => {
       cleanup()
     })
+  })
+
+  ipcMain.on("main:finish", async (event) => {
+    await store.flushSnippets(pageIdx)
+
+    mainWindow.removeBrowserView(siteView)
+    mainWindow.removeBrowserView(textView)
+
+    mainWindow.addBrowserView(finishView)
+
+    finishView.setBounds({
+      x: 0,
+      y: 0,
+      width: mainWindow.getBounds().width,
+      height: mainWindow.getBounds().height,
+    })
+  })
+
+  ipcMain.on("start:start", async (event) => {
+    const result = await dialog.showOpenDialog({
+      properties: ["openDirectory"],
+    })
+
+    if (result.canceled) {
+      return
+    }
+
+    const [path] = result.filePaths
+
+    const outPath = path.split("/").slice(0, -1).concat(["extracted"]).join("/")
+
+    store.setPath(path)
+    await store.setOutPath(outPath)
+
+    await store.loadDirectory()
+
+    configPath = store.getOutPathForFile("human-page-tool")
+
+    try {
+      pageIdx = parseInt(readFileSync(configPath, "utf-8"))
+
+      if (pageIdx >= store.size()) pageIdx = 0
+    } catch (e) {
+      /* empty */
+    }
+
+    mainWindow.removeBrowserView(mainWindow.getBrowserView()!)
 
     mainWindow.addBrowserView(siteView)
     mainWindow.addBrowserView(textView)
-
-    siteView.webContents.openDevTools({ mode: "detach" })
-    textView.webContents.openDevTools({ mode: "detach" })
 
     textView.setBounds({
       x: mainWindow.getBounds().width / 2,
@@ -71,27 +141,12 @@ export const ipc: (a: IpcArgs) => void = ({
       width: mainWindow.getBounds().width / 2,
       height: mainWindow.getBounds().height,
     })
-  })
-
-  ipcMain.on("start:open-dialog", async (event) => {
-    const result = await dialog.showOpenDialog({
-      properties: ["openDirectory"],
-    })
-
-    if (result.canceled) {
-      return
-    }
-
-    const [path] = result.filePaths
-
-    const outPath = path.split("/").slice(0, -1).concat(["extracted"]).join("/")
-
-    store.setPath(path)
-    store.setOutPath(outPath)
-
-    await store.loadDirectory()
 
     ipcMain.emit("main:load-site", null, { idx: pageIdx })
+  })
+
+  ipcMain.on("finish:quit", async (event) => {
+    mainWindow.close()
   })
 }
 

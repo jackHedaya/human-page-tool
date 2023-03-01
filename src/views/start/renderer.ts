@@ -7,7 +7,5 @@ declare const api: {
 document.addEventListener("DOMContentLoaded", () => {
   const button = document.getElementById("start")!
 
-  button.addEventListener("click", () => {
-    api.selectDirectory()
-  })
+  button.addEventListener("click", () => api.selectDirectory())
 })

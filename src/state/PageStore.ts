@@ -1,6 +1,14 @@
-import fs from "fs/promises"
+import { mkdir, writeFile, readdir, readFile } from "fs/promises"
 import path from "path"
 import { Snippet } from "../types/snippet"
+
+type Page = {
+  page: {
+    data: string
+  }
+  title: string
+  url: string
+}
 
 export class PageStore {
   private files: string[] = []
@@ -19,11 +27,25 @@ export class PageStore {
     this.path = inPath
   }
 
-  public setOutPath(outPath: string) {
+  public async setOutPath(outPath: string) {
     this.outPath = outPath
+
+    await mkdir(outPath, { recursive: true })
   }
 
-  public async getSnippets(pageIdx: number): Promise<Snippet[]> {
+  public snippetsSize(pageIdx: number): number {
+    return this.pageSnippets[pageIdx]?.length ?? 0
+  }
+
+  public size(): number {
+    return this.files.length
+  }
+
+  public popSnippets(pageIdx: number): Snippet | null {
+    return this.pageSnippets[pageIdx]?.pop() ?? null
+  }
+
+  public getSnippets(pageIdx: number): Snippet[] {
     const snippets = this.pageSnippets[pageIdx]
 
     if (!snippets) return []
@@ -41,7 +63,7 @@ export class PageStore {
     if (!this.pageSnippets[pageIdx]) this.pageSnippets[pageIdx] = []
 
     const snippets = this.pageSnippets[pageIdx]
-    console.log(snippets, "addSnippet", snippet)
+
     for (let i = 0; i < snippets.length; i++) {
       const s = snippets[i]
 
@@ -50,7 +72,6 @@ export class PageStore {
       else if (snippet.xpath.startsWith(s.xpath)) return snippets
     }
 
-    console.log("adding", snippet)
     snippets.push(snippet)
 
     return snippets
@@ -74,7 +95,7 @@ export class PageStore {
     return sorted
   }
 
-  public async syncSnippets(pageIdx?: number | string | (number | string)[]) {
+  public async flushSnippets(pageIdx?: number | string | (number | string)[]) {
     const pageIdxs: number[] = []
 
     // Invalid type will be handled by the next for loop
@@ -100,18 +121,15 @@ export class PageStore {
         content: this.joinSnippets(snippets),
       }
 
-      await fs.writeFile(path, JSON.stringify(page))
+      await writeFile(path, JSON.stringify(page))
 
       // Clear from memory
       this.pageSnippets[idx] = []
     }
   }
 
-  public async getPage(idx: number) {
-    const file = await fs.readFile(
-      this.getPathForFile(this.files[idx]),
-      "utf-8"
-    )
+  public async getPage(idx: number): Promise<Page> {
+    const file = await readFile(this.getPathForFile(this.files[idx]), "utf-8")
 
     const json = JSON.parse(file)
 
@@ -123,7 +141,7 @@ export class PageStore {
   public async loadDirectory() {
     this.validatePath()
 
-    this.files = await fs.readdir(this.path!)
+    this.files = await readdir(this.path!)
   }
 
   private joinSnippets(snippets: Snippet[]) {
@@ -136,7 +154,7 @@ export class PageStore {
     return path.join(this.path!, file)
   }
 
-  private getOutPathForFile(file: string) {
+  public getOutPathForFile(file: string) {
     this.validateOutPath()
 
     return path.join(this.outPath!, file)
