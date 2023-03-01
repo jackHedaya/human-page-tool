@@ -4,10 +4,11 @@ import { contextBridge, ipcRenderer } from "electron"
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
-const validSendChannels = ["finish:quit"] as const
+const validSendChannels = ["finish:quit", "finish:finder"] as const
 
 type ChannelDataTypes = {
   "finish:quit": undefined
+  "finish:finder": undefined
 }
 
 const api = {

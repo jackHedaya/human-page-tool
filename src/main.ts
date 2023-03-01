@@ -1,4 +1,4 @@
-import { dialog, BrowserView, ipcMain, BrowserWindow } from "electron"
+import { dialog, BrowserView, ipcMain, BrowserWindow, shell } from "electron"
 import { file } from "tmp-promise"
 import { writeFile } from "fs/promises"
 import { PageStore } from "./state/PageStore"
@@ -69,7 +69,7 @@ export const ipc: (a: IpcArgs) => void = ({
   ipcMain.on("main:load-site", async (event, { idx }) => {
     const page = await store.getPage(idx)
 
-    const { path: sitePath, cleanup } = await loadHtml(page.page.data)
+    const { path: sitePath, cleanup } = await loadHtml(page!.page.data)
 
     siteView.webContents.loadURL(sitePath)
     textView.webContents.send("main:rerender", store.getSnippets(pageIdx))
@@ -80,8 +80,6 @@ export const ipc: (a: IpcArgs) => void = ({
   })
 
   ipcMain.on("main:finish", async (event) => {
-    await store.flushSnippets(pageIdx)
-
     mainWindow.removeBrowserView(siteView)
     mainWindow.removeBrowserView(textView)
 
@@ -147,6 +145,10 @@ export const ipc: (a: IpcArgs) => void = ({
 
   ipcMain.on("finish:quit", async (event) => {
     mainWindow.close()
+  })
+
+  ipcMain.on("finish:finder", async (event) => {
+    shell.openPath(store.getOutPath()!)
   })
 }
 

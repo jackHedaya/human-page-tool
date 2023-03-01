@@ -96,13 +96,16 @@ export class PageStore {
   }
 
   public async flushSnippets(pageIdx?: number | string | (number | string)[]) {
-    const pageIdxs: number[] = []
+    const _pageIdxs: number[] = []
 
     // Invalid type will be handled by the next for loop
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (Array.isArray(pageIdx)) pageIdxs.push(...(pageIdx as any))
+    if (Array.isArray(pageIdx)) _pageIdxs.push(...(pageIdx as any))
+    else _pageIdxs.push(pageIdx as any)
 
-    for (const idx of pageIdxs) {
+    const pageIdxs: number[] = []
+
+    for (const idx of _pageIdxs) {
       if (typeof idx === "string") {
         pageIdxs.push(this.files.indexOf(idx))
       } else {
@@ -116,19 +119,22 @@ export class PageStore {
 
       const snippets = this.pageSnippets[idx]
 
-      page.content = {
-        snippets,
+      const write = {
+        ...page,
         content: this.joinSnippets(snippets),
+        snippets,
       }
 
-      await writeFile(path, JSON.stringify(page))
+      await writeFile(path, JSON.stringify(write))
 
       // Clear from memory
       this.pageSnippets[idx] = []
     }
   }
 
-  public async getPage(idx: number): Promise<Page> {
+  public async getPage(idx: number): Promise<Page | null> {
+    if (idx >= this.files.length) return null
+
     const file = await readFile(this.getPathForFile(this.files[idx]), "utf-8")
 
     const json = JSON.parse(file)
@@ -158,6 +164,10 @@ export class PageStore {
     this.validateOutPath()
 
     return path.join(this.outPath!, file)
+  }
+
+  public getOutPath() {
+    return this.outPath
   }
 
   private validatePath() {
