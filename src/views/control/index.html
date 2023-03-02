@@ -9,11 +9,25 @@
 
 <body>
   <div id="root">
-    <div id="markup"></div>
+    <div id="markup-container">
+      <div id="markup"></div>
+    </div>
     <div id="controls">
       <button id="undo">Undo</button>
       <button id="redo">Redo</button>
+      <button id="open-modal">Add Snippet</button>
       <button id="next">Next</button>
+    </div>
+    <div id="modal">
+      <div id="modal-content">
+
+        <textarea id="modal-textarea"></textarea>
+
+        <div id="modal-footer">
+          <button id="modal-close">Close</button>
+          <button id="modal-send">Add</button>
+        </div>
+      </div>
     </div>
   </div>
 </body>

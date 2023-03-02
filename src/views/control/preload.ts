@@ -30,6 +30,10 @@ const api = {
     }
   },
 
+  addSnippet: (snippet: Snippet): Promise<Snippet[]> => {
+    return ipcRenderer.invoke("site:add-snippet", { snippet })
+  },
+
   receive: <Channel extends typeof validReceiveChannels[number]>(
     channel: Channel,
     func: (data: ChannelDataTypes[Channel]) => void

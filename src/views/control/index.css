@@ -5,10 +5,13 @@ body {
   width: 100vw;
   height: 100vh;
 }
+#markup-container {
+  flex: 1;
+  overflow: scroll;
+}
 
 #markup {
   white-space: pre-wrap;
-  flex: 1;
   padding: 1rem;
 }
 
@@ -40,4 +43,54 @@ button:last-of-type {
   flex-direction: column;
   width: 100%;
   height: 100%;
+}
+
+#modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#modal-content {
+  display: flex;
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 4px;
+  width: 400px;
+  height: 300px;
+  overflow: scroll;
+  flex-direction: column;
+}
+
+#modal-content div p {
+  margin: 0;
+}
+
+#modal-content div {
+  white-space: pre-wrap;
+}
+
+#modal-textarea {
+  flex: 1;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+}
+
+#modal-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+#modal-footer button {
+  min-width: 100px;
 }

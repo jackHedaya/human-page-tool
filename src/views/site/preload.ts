@@ -121,14 +121,16 @@ function rerender(snippets: Snippet[] = []) {
 }
 
 function findSelectedElements(snippets: Snippet[]) {
-  return snippets.map(
-    (snippet) =>
-      document.evaluate(
-        snippet.xpath,
-        document,
-        null,
-        XPathResult.FIRST_ORDERED_NODE_TYPE,
-        null
-      ).singleNodeValue as Element
-  )
+  return snippets
+    .filter((s) => s.xpath !== "")
+    .map(
+      (snippet) =>
+        document.evaluate(
+          snippet.xpath,
+          document,
+          null,
+          XPathResult.FIRST_ORDERED_NODE_TYPE,
+          null
+        ).singleNodeValue as Element
+    )
 }

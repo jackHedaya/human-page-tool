@@ -67,6 +67,9 @@ export class PageStore {
     for (let i = 0; i < snippets.length; i++) {
       const s = snippets[i]
 
+      if (s.xpath === "") continue
+      if (snippet.xpath === "") break
+
       if (s.xpath === snippet.xpath) return snippets
       else if (s.xpath.startsWith(snippet.xpath)) snippets.splice(i, 1)
       else if (snippet.xpath.startsWith(s.xpath)) return snippets

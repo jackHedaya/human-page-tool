@@ -28,6 +28,8 @@ export const ipc: (a: IpcArgs) => void = ({
   ipcMain.handle("site:add-snippet", (event, { snippet }) => {
     actionStack.push(new AddSnippetAction(store, pageIdx, snippet))
 
+    if (snippet.markdown.trim() === "") return store.getSnippets(pageIdx)
+
     return store.addSnippet(pageIdx, snippet)
   })
 
@@ -75,15 +77,13 @@ export const ipc: (a: IpcArgs) => void = ({
 
     siteView.webContents.loadURL(sitePath)
     controlView.webContents.send("main:rerender", store.getSnippets(pageIdx))
-    siteView.webContents.openDevTools({ mode: "detach" })
+    controlView.webContents.openDevTools({ mode: "detach" })
 
     siteView.webContents.on("before-input-event", (event, input) => {
-      event.preventDefault()
       handleUndoRedo(input)
     })
 
     controlView.webContents.on("before-input-event", (event, input) => {
-      event.preventDefault()
       handleUndoRedo(input)
     })
 

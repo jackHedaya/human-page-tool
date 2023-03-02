@@ -2,6 +2,10 @@ import type { Snippet } from "@/types/snippet"
 
 export function sortSnippetsOrder(snippets: Snippet[]): number[] {
   const sorted = snippets.slice().sort((a, b) => {
+    if (a.xpath === "" && b.xpath === "") return 0
+    else if (a.xpath === "") return -1
+    else if (b.xpath === "") return 1
+
     const aElement = getElementByXpath(a.xpath) as Element
     const bElement = getElementByXpath(b.xpath) as Element
 
