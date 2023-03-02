@@ -29,15 +29,11 @@ const createWindow = () => {
     width: WINDOW_WIDTH,
     height: WINDOW_HEIGHT,
     titleBarStyle: "hidden",
-    webPreferences: {
-      nodeIntegration: true,
-    },
   })
 
   const startView = new BrowserView({
     webPreferences: {
       preload: START_VIEW_PRELOAD_WEBPACK_ENTRY,
-      nodeIntegration: true,
     },
   })
 

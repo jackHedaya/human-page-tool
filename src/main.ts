@@ -73,6 +73,30 @@ export const ipc: (a: IpcArgs) => void = ({
 
     siteView.webContents.loadURL(sitePath)
     textView.webContents.send("main:rerender", store.getSnippets(pageIdx))
+    siteView.webContents.openDevTools({ mode: "detach" })
+    
+    siteView.webContents.on("before-input-event", (event, input) => {
+      event.preventDefault()
+
+      if (input.type === "keyDown") {
+        const isMac = process.platform === "darwin"
+        const isCmdZ = isMac
+          ? input.meta && input.key === "z"
+          : input.control && input.key === "z"
+
+        if (isCmdZ) {
+          if (input.shift) {
+            ipcMain.emit("control:redo", null)
+          } else {
+            ipcMain.emit("control:undo", null)
+          }
+
+          siteView.webContents.send("main:rerender", store.getSnippets(pageIdx))
+        } else if (input.shift && !input.control && !input.meta) {
+          // siteView.
+        }
+      }
+    })
 
     siteView.webContents.on("destroyed", () => {
       cleanup()

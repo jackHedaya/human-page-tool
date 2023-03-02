@@ -1,14 +1,27 @@
 import { ipcRenderer } from "electron"
 import type { Snippet } from "@/types/snippet"
 import { arrestDocument } from "./arrestDocument"
-import { removeBackground, setBackground } from "./background"
 import { markdownFromElement } from "./markdown"
 import { sortSnippetsOrder } from "./sortSnippets"
 import { xPath } from "./xpath"
+import {
+  isUsed,
+  setHighlighted,
+  isHandlersAdded,
+  setHandlersAdded,
+  removeUsed,
+  setUsed,
+  removeHighlighted,
+} from "./interaction-store"
 
 console.log(
   '👋 This message is being logged by "preload.ts", included via webpack'
 )
+
+ipcRenderer.on("main:rerender", (event, snippets: Snippet[]) => {
+  console.log("rerender", snippets)
+  rerender(snippets)
+})
 
 async function sendSnippet({
   markdown,
@@ -38,6 +51,20 @@ async function sendSnippet({
 document.addEventListener("DOMContentLoaded", () => {
   arrestDocument(document)
 
+  // add style that any element that has been used will have a green background
+  const style = document.createElement("style")
+  style.innerHTML = `
+    *[data-used=true] {
+      background: green !important;
+    }
+
+    *[data-highlighted=true] {
+      background: red !important;
+    }
+  }`
+
+  document.head.appendChild(style)
+
   document.addEventListener("mouseover", (e) => {
     // get the closest element to the target text
     const element = document.elementFromPoint(e.x, e.y)
@@ -46,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (isUsed(element)) return
 
-    setBackground(element, "red")
+    setHighlighted(element)
 
     if (isHandlersAdded(element)) return
 
@@ -71,72 +98,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const snippets = await sendSnippet({ markdown, xpath })
 
+    removeHighlighted(element)
+
     rerender(snippets)
   })
 })
 
 function addMouseOutHandler(element: Element) {
   element.addEventListener("mouseout", () => {
-    if (isUsed(element)) return
-
-    removeBackground(element)
-  })
-}
-
-function findSelectedElements(snippets: Snippet[]) {
-  // find all elements that have a snippet and set them and their children to used
-
-  snippets.forEach((snippet) => {
-    const element = document.evaluate(
-      snippet.xpath,
-      document,
-      null,
-      XPathResult.FIRST_ORDERED_NODE_TYPE,
-      null
-    ).singleNodeValue as Element
-
-    if (!element) return
-
-    setUsed(element)
-
-    const children = element.querySelectorAll("*")
-
-    children.forEach((child) => {
-      setUsed(child)
-    })
+    removeHighlighted(element)
   })
 }
 
 function rerender(snippets: Snippet[] = []) {
-  // find all elements that have not been used and remove their background
-  const elements = document.querySelectorAll("*")
-  elements.forEach((element) => {
-    if (isUsed(element)) return
+  document
+    .querySelectorAll("*[data-used=true]")
+    .forEach((element) => removeUsed(element))
 
-    removeBackground(element)
-  })
+  const selectedElements = findSelectedElements(snippets)
 
-  findSelectedElements(snippets)
-
-  // add background to all elements that have been used
-  const usedElements = document.querySelectorAll("*[data-used=true]")
-  usedElements.forEach((element) => {
-    setBackground(element, "green")
-  })
+  selectedElements.forEach((element) => setUsed(element))
 }
 
-function isUsed(element: Element) {
-  return element.hasAttribute("data-used")
-}
-
-function setUsed(element: Element) {
-  element.setAttribute("data-used", "true")
-}
-
-function isHandlersAdded(element: Element) {
-  return element.hasAttribute("data-handlers-added")
-}
-
-function setHandlersAdded(element: Element) {
-  element.setAttribute("data-handlers-added", "true")
+function findSelectedElements(snippets: Snippet[]) {
+  return snippets.map(
+    (snippet) =>
+      document.evaluate(
+        snippet.xpath,
+        document,
+        null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE,
+        null
+      ).singleNodeValue as Element
+  )
 }
