@@ -42,14 +42,4 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("next")!.addEventListener("click", () => {
     api.send("control:next")
   })
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "z" && e.ctrlKey) {
-      api.send("control:undo")
-    } else if (e.key === "y" && e.ctrlKey) {
-      api.send("control:redo")
-    } else if (e.key === "ArrowRight") {
-      api.send("control:next")
-    }
-  })
 })

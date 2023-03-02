@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("click", async (e) => {
     // get the closest element to the target text
     const element = document.elementFromPoint(e.x, e.y)
-
+    console.log(element?.textContent)
     if (!element) return
 
     if (isUsed(element)) return

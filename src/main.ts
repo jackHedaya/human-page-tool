@@ -6,7 +6,7 @@ import { ActionStack, AddSnippetAction } from "./state/ActionStack"
 import { readFileSync } from "fs"
 
 type IpcArgs = {
-  textView: BrowserView
+  controlView: BrowserView
   siteView: BrowserView
   finishView: BrowserView
   mainWindow: BrowserWindow
@@ -20,7 +20,7 @@ let configPath: string,
   pageIdx = 0
 
 export const ipc: (a: IpcArgs) => void = ({
-  textView,
+  controlView,
   siteView,
   mainWindow,
   finishView,
@@ -36,17 +36,19 @@ export const ipc: (a: IpcArgs) => void = ({
   })
 
   ipcMain.handle("site:rerender-control", async () => {
-    textView.webContents.send("main:rerender", store.getSnippets(pageIdx))
+    controlView.webContents.send("main:rerender", store.getSnippets(pageIdx))
   })
 
   ipcMain.on("control:undo", () => {
     actionStack.undo()
-    textView.webContents.send("main:rerender", store.getSnippets(pageIdx))
+    controlView.webContents.send("main:rerender", store.getSnippets(pageIdx))
+    siteView.webContents.send("main:rerender", store.getSnippets(pageIdx))
   })
 
   ipcMain.on("control:redo", () => {
     actionStack.redo()
-    textView.webContents.send("main:rerender", store.getSnippets(pageIdx))
+    controlView.webContents.send("main:rerender", store.getSnippets(pageIdx))
+    siteView.webContents.send("main:rerender", store.getSnippets(pageIdx))
   })
 
   ipcMain.on("control:next", async (event) => {
@@ -72,30 +74,17 @@ export const ipc: (a: IpcArgs) => void = ({
     const { path: sitePath, cleanup } = await loadHtml(page!.page.data)
 
     siteView.webContents.loadURL(sitePath)
-    textView.webContents.send("main:rerender", store.getSnippets(pageIdx))
+    controlView.webContents.send("main:rerender", store.getSnippets(pageIdx))
     siteView.webContents.openDevTools({ mode: "detach" })
-    
+
     siteView.webContents.on("before-input-event", (event, input) => {
       event.preventDefault()
+      handleUndoRedo(input)
+    })
 
-      if (input.type === "keyDown") {
-        const isMac = process.platform === "darwin"
-        const isCmdZ = isMac
-          ? input.meta && input.key === "z"
-          : input.control && input.key === "z"
-
-        if (isCmdZ) {
-          if (input.shift) {
-            ipcMain.emit("control:redo", null)
-          } else {
-            ipcMain.emit("control:undo", null)
-          }
-
-          siteView.webContents.send("main:rerender", store.getSnippets(pageIdx))
-        } else if (input.shift && !input.control && !input.meta) {
-          // siteView.
-        }
-      }
+    controlView.webContents.on("before-input-event", (event, input) => {
+      event.preventDefault()
+      handleUndoRedo(input)
     })
 
     siteView.webContents.on("destroyed", () => {
@@ -105,7 +94,7 @@ export const ipc: (a: IpcArgs) => void = ({
 
   ipcMain.on("main:finish", async (event) => {
     mainWindow.removeBrowserView(siteView)
-    mainWindow.removeBrowserView(textView)
+    mainWindow.removeBrowserView(controlView)
 
     mainWindow.addBrowserView(finishView)
 
@@ -148,9 +137,9 @@ export const ipc: (a: IpcArgs) => void = ({
     mainWindow.removeBrowserView(mainWindow.getBrowserView()!)
 
     mainWindow.addBrowserView(siteView)
-    mainWindow.addBrowserView(textView)
+    mainWindow.addBrowserView(controlView)
 
-    textView.setBounds({
+    controlView.setBounds({
       x: mainWindow.getBounds().width / 2,
       y: 0,
       width: mainWindow.getBounds().width / 2,
@@ -182,4 +171,21 @@ const loadHtml = async (page: string) => {
   await writeFile(path, page)
 
   return { path: `file://${path}`, cleanup }
+}
+
+function handleUndoRedo(input: Electron.Input) {
+  if (input.type === "keyDown") {
+    const isMac = process.platform === "darwin"
+    const isCmdZ = isMac
+      ? input.meta && input.key === "z"
+      : input.control && input.key === "z"
+
+    if (isCmdZ) {
+      if (input.shift) {
+        ipcMain.emit("control:redo", null)
+      } else {
+        ipcMain.emit("control:undo", null)
+      }
+    }
+  }
 }

@@ -78,13 +78,13 @@ const createWindow = () => {
     },
   })
 
-  const textView = new BrowserView({
+  const controlView = new BrowserView({
     webPreferences: {
       preload: CONTROL_VIEW_PRELOAD_WEBPACK_ENTRY,
     },
   })
 
-  textView.webContents.loadURL(CONTROL_VIEW_WEBPACK_ENTRY)
+  controlView.webContents.loadURL(CONTROL_VIEW_WEBPACK_ENTRY)
 
   mainWindow.addListener("close", () => {
     ipcMain.removeAllListeners()
@@ -97,7 +97,7 @@ const createWindow = () => {
   // @ts-ignore
   if (mainWindow._listenersSet) return
 
-  ipc({ siteView, textView, mainWindow, finishView })
+  ipc({ siteView, controlView, mainWindow, finishView })
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
